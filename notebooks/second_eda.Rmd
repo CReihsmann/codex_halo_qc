@@ -1,0 +1,166 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+libraries
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+```
+Importing object data
+```{r}
+object_data <- read_csv("../data/20220510-HALO EXPORT.csv")
+```
+
+```{r}
+object_pos_class <- object_data %>%  
+  mutate(unosid = str_sub(`Algorithm Name`, 10, 19)) %>% 
+  select(unosid, contains('Positive Classification'))
+```
+
+```{r}
+hormone_pos <- object_pos_class %>% 
+  select(unosid, contains(c('CPEP', 'GCG', 'SST', 'GHRL', 'PPY'))) %>% 
+  filter_all(any_vars(. == 1))
+```
+
+```{r}
+hormone_pos %>% 
+  group_by(unosid) %>% 
+  summarise(total_endo = n(), total_ins = sum(`CPEP Positive Classification`), 
+            total_gcg = sum(`GCG Positive Classification`), 
+            total_sst = sum(`SST Positive Classification`),
+            total_ghrl = sum(`GHRL Positive Classification`),
+            total_ppy = sum(`PPY Positive Classification`)) %>% 
+  mutate(perc_ins = round((total_ins/total_endo)*100, 2),
+         perc_gcg = round((total_gcg/total_endo)*100, 2),
+         perc_sst = round((total_sst/total_endo)*100, 2),
+         perc_ghrl = round((total_ghrl/total_endo)*100, 2),
+         perc_ppy = round((total_ppy/total_endo)*100, 2),)
+```
+
+```{r}
+hormone_pos %>% 
+  filter_at(vars(`CPEP Positive Classification`, `GCG Positive Classification`), all_vars(. == 1)) %>% 
+  group_by(unosid) %>% 
+  summarise(ins_gcg_dp = n())
+```
+
+```{r}
+hormone_pos %>% 
+  group_by(unosid) %>% 
+  summarise(ins_gcg_dp = sum(`CPEP Positive Classification`[`CPEP Positive Classification`==1 & `GCG Positive Classification`==1]),
+            gcg_sst_dp = sum(`GCG Positive Classification`[`GCG Positive Classification` == 1 & `SST Positive Classification` == 1]),
+            ins_sst_dp = sum(`CPEP Positive Classification`[`CPEP Positive Classification`==1 & `SST Positive Classification`==1]),
+            ins_ghrl_dp = sum(`CPEP Positive Classification`[`CPEP Positive Classification`==1 & `GHRL Positive Classification`==1]),
+            gcg_ghrl_dp = sum(`GCG Positive Classification`[`GCG Positive Classification`==1 & `GHRL Positive Classification`==1]))
+```
+
+```{r}
+hormone_pos %>% 
+  mutate(total = rowSums(across(where(is.numeric)))) %>% 
+  group_by(unosid) %>% 
+  summarise(sum_all = n(),
+            d_pos = sum(total[total > 1])) %>% 
+  mutate(perc_dpos = round((d_pos/sum_all)*100, 2))
+```
+CD45 & IBA1
+```{r}
+object_count <- object_pos_class %>% 
+  group_by(unosid) %>% 
+  summarise(total_cells = n())
+
+cd45_iba1 <- object_pos_class %>% 
+  select(unosid, contains(c('CD45', 'IBA1'))) %>% 
+  filter_all(any_vars(. == 1))%>% 
+  group_by(unosid) %>% 
+  summarise(total_cd45 = sum(`CD45 Positive Classification`[`CD45 Positive Classification`==1]),
+            total_iba1 = sum(`IBA1 Positive Classification`[`IBA1 Positive Classification`==1]),
+            double_positives = sum(`CD45 Positive Classification`[`CD45 Positive Classification`==1 & `IBA1 Positive Classification`==1])) %>% 
+  merge(object_count) %>% 
+  mutate(iba1_percent = (total_iba1/total_cells)*100, 
+         cd45_percent = (total_cd45/total_cells)*100,
+         double_positive_perc = (double_positives/total_cells)*100)
+
+```
+
+```{r}
+cd45_iba1 %>% 
+  pivot_longer(iba1_percent:double_positive_perc, names_to = 'markers_and_dp', values_to = 'percents') %>% 
+  ggplot(aes(x = unosid, y = percents, fill = markers_and_dp))+
+  geom_col(position = 'dodge')+
+  theme(legend.position = c(0.25,0.8))+
+  theme_minimal()
+```
+CD8 and CD4
+```{r}
+cd8_cd4 <- object_pos_class %>% 
+  select(unosid, contains(c('CD8', 'CD4'))) %>% 
+  filter_all(any_vars(. == 1))%>% 
+  group_by(unosid) %>% 
+  summarise(total_cd8 = sum(`CD8 Positive Classification`[`CD8 Positive Classification`==1]),
+            total_cd4 = sum(`CD4 Positive Classification`[`CD4 Positive Classification`==1]),
+            double_positives = sum(`CD8 Positive Classification`[`CD8 Positive Classification`==1 & `CD4 Positive Classification`==1])) %>% 
+  merge(object_count) %>% 
+  mutate(cd8_percent = (total_cd8/total_cells)*100, 
+         cd4_percent = (total_cd4/total_cells)*100,
+         double_positive_perc = (double_positives/total_cells)*100)
+```
+
+```{r}
+cd8_cd4 %>% 
+  pivot_longer(cd8_percent:double_positive_perc, names_to = 'markers_and_dp', values_to = 'percents') %>% 
+  ggplot(aes(x = unosid, y = percents, fill = markers_and_dp))+
+  geom_col(position = 'dodge')+
+  theme(legend.position = c(0.8,0.8))+
+  theme_minimal()
+```
+CD31 & MCAM
+```{r}
+cd31_mcam <- object_pos_class %>% 
+  select(unosid, contains(c('CD31', 'MCAM'))) %>% 
+  filter_all(any_vars(. == 1))%>% 
+  group_by(unosid) %>% 
+  summarise(total_cd31 = sum(`CD31 Positive Classification`[`CD31 Positive Classification`==1]),
+            total_mcam = sum(`MCAM Positive Classification`[`MCAM Positive Classification`==1]),
+            double_positives = sum(`CD31 Positive Classification`[`CD31 Positive Classification`==1 & `MCAM Positive Classification`==1])) %>% 
+  merge(object_count) %>% 
+  mutate(cd31_percent = (total_cd31/total_cells)*100, 
+         mcam_percent = (total_mcam/total_cells)*100,
+         double_positive_perc = (double_positives/total_cells)*100)
+```
+
+```{r}
+cd31_mcam %>% 
+  pivot_longer(cd31_percent:double_positive_perc, names_to = 'markers_and_dp', values_to = 'percents') %>% 
+  ggplot(aes(x = unosid, y = percents, fill = markers_and_dp))+
+  geom_col(position = 'dodge')+
+  theme(legend.position = c(0.25,0.8))+
+  theme_minimal()
+```
+
+object_mapping
+```{r}
+object_coord <- object_data %>%   
+  mutate(unosid = str_sub(`Algorithm Name`, 10, 19)) %>% 
+  mutate(x_coord = (XMin + XMax)/2,
+         y_coord = (YMin + YMax)/2) %>% 
+  select(unosid, x_coord, y_coord)
+```
+```{r}
+y_points <- object_coord %>%
+  filter(unosid == 'AEIM373-T1')
+y_max = max(y_points$y_coord)
+
+x_points <- object_coord %>%
+  filter(unosid == 'AEIM373-T1')
+max(object_coord$x_coord)
+
+ggplotly(object_coord %>%
+  filter(unosid == 'AEIM373-T1') %>% 
+  ggplot(aes(x_coord, y_coord))+
+  geom_point(size = 0.01)+
+  theme(aspect.ratio = (y_max/x_max)))
+```
+
