@@ -1,0 +1,8 @@
+library(tidyverse)
+library(shiny)
+library(httr)
+library(rjson)
+library(plotly)
+library(shinythemes)
+library(markdown)
+library(sf)
