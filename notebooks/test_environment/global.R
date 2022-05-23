@@ -4,14 +4,18 @@ library(plotly)
 library(reticulate)
 library(DT)
 library(patchwork)
+library(shiny)
 use_virtualenv('../../env/')
 
 #--test dataset that would be loaded
-test_dataset <- read.csv('../../data/AEIM373-object_data_test.csv', check.names = T)
+#test_dataset <- read.csv('../../data/AEIM373-object_data_test.csv', check.names = T)
+req(input$file)
+data <- data.frame(marker.Positive.Classification = 1:3, marker.Intensity = 1:3)
+test_dataset <- df
 
 #--pulling out classification columns and intensity value columns into two tibbles
 classification_cols <- test_dataset %>%  
-    #mutate(unosid = str_sub(Algorithm.Name, 10, 19)) %>% 
+    #mutate(unosid = str_sub(Algorithm.Name, 10, 19)) %>% #--pulled unosid
     select(Object.Id,contains('Positive.Classification'))%>% 
     rename_with(~ gsub(".Positive.Classification", "", .x, fixed = T))
 

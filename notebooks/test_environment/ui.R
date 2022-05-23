@@ -22,7 +22,18 @@ shinyUI(fluidPage(
                         "Number of bins:",
                         min = 1,
                         max = 50,
-                        value = 30)
+                        value = 30),
+            fileInput('file',
+                      label = h3('File input'),
+                      multiple = F,
+                      accept = c("text/csv",
+                                 "text/comma-separated-values,text/plain",
+                                 ".csv")),
+            selectInput('barChart_input',
+                        'Markers',
+                        markers_dict,
+                        multiple = T,
+                        selectize = T)
         ),
 
         # Show a plot of the generated distribution

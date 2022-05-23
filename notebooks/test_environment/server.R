@@ -9,10 +9,19 @@
 
 library(shiny)
 
+
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
-
+    
+    uploaded_file <- reactive({
+        req(input$file)
+        test_dataset <- read.csv(input$file, check.names = T)
+        
+        
+            
+    })
     output$barChart <- renderPlot({
+        
 
         # generate bins based on input$bins from ui.R
         x    <- faithful[, 2]
