@@ -1,0 +1,13 @@
+name: test_environment
+title: test_environment
+username:
+account: creihsmann
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6371452
+bundleId: 5943960
+url: https://creihsmann.shinyapps.io/test_environment/
+when: 1653493064.68184
+lastSyncTime: 1653493064.68184
+asMultiple: FALSE
+asStatic: FALSE
