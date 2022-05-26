@@ -16,13 +16,21 @@ shinyUI(fluidPage(
                         'markers',
                         choices = 'none',
                         multiple = T,
-                        selectize = T)
+                        selectize = T),
+            radioButtons('radio_donut', 
+                         'Select Doghnut Chart',
+                         choices = c("% of subset",
+                                     "% of whole")),
+            radioButtons('radio_bar',
+                         'Select bar chart',
+                         choices = c("% of subset",
+                                    "% of whole" ))
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("barChart"),
-            plotlyOutput("cellMap")
+            plotlyOutput("barChart"),
+            plotOutput("doughnutChart")
         )
     )
 ))
