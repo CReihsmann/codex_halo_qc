@@ -38,13 +38,19 @@ shinyUI(fluidPage(
       radioButtons('log_trans',
                    'Log Transformation',
                    choices = c('yes', 
-                               'no'))
+                               'no')),
+      radioButtons('intensity_choices',
+                   'Intensity Values',
+                   choices = c('all',
+                               'positive',
+                               'double positive',
+                               'positive (no double positive)',
+                               'negative'))
     ),
     
     # Show a plot of the generated distribution
     mainPanel(
-      plotlyOutput("barChart"),
-      plotOutput("doughnutChart")
+      plotOutput("cellMap", height = "100vh")
     )
   )
 ))
