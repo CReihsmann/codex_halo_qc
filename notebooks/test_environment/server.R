@@ -17,9 +17,15 @@ shinyServer(function(input, output, session) {
     })
     
     classification_col_filter <- reactive({
-        classification_cols <- uploaded_file() %>% 
+        uploaded_file() %>% 
             select(`Object Id`,contains('Positive Classification'))%>%
             rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
+    })
+    intensity_col_filter <- reactive({
+        uploaded_file() %>%
+            select(`Object Id`, contains('Intensity')) %>%
+            rename_with(~ gsub(" Intensity", "", .x, fixed = T))
+
     })
     
     observeEvent(input$file, {
@@ -28,21 +34,92 @@ shinyServer(function(input, output, session) {
             select(!`Object Id`) %>%
             colnames()
         
-        markers = c()
+        marker_names_intensity <- intensity_col_filter() %>%
+            select(!`Object Id`) %>%
+            colnames()
+        
+        markers_bars = c()
         
         for(i in marker_names){
             print(i)
             i = str_replace(i, '([.])', "-")
-            markers = append(markers, i)
+            markers_bars = append(marker_names, i)
+        }
+        
+        markers_intensity = c()
+
+        for(i in marker_names_intensity){
+            print(i)
+            i = str_replace(i, '([.])', "-")
+            markers_intensity = append(marker_names_intensity, i)
         }
         
         markers_dict <- list()
-        for(i in 1:length(markers)) {
-            markers_dict[markers[i]] <- marker_names[i]
+        for(i in 1:length(marker_names)) {
+            markers_dict[markers_bars[i]] <- marker_names[i]
         }
+        
+        markers_intensity_dict <- list()
+        for(i in 1:length(marker_names_intensity)) {
+            markers_intensity_dict[markers_intensity[i]] <- marker_names_intensity[i]
+        }
+        
         updateSelectInput(session,
                           'barChart_input',
                           choices = markers_dict)
+
+        updateSelectInput(session,
+                          'y_input',
+                          choices = markers_intensity_dict)
+
+        updateSelectInput(session,
+                          'x_input',
+                          choices = markers_intensity_dict)
+
+    })
+    
+    output$intensityChart <- renderPlot({
+        
+        x_marker <- word(input$x_input, 1)
+        y_marker <- word(input$y_input, 1)
+        dataset <- uploaded_file()
+
+        intensity_class_x <- dataset %>%
+            select(`Object Id`, contains(x_marker))
+        intensity_class_y <- dataset %>%
+            select(`Object Id`, contains(y_marker))
+        intensity_all <- intensity_class_x %>%
+            merge(intensity_class_y)
+        class_sums <- intensity_all %>%
+            select(`Object Id`, contains('Positive Classification')) %>%
+            mutate(sums = rowSums(.[2:3])) %>% 
+            select(`Object Id`, sums)
+
+        intensity_with_sums <- intensity_all %>%
+            select(`Object Id`, contains('Intensity')) %>%
+            merge(class_sums) %>%
+            rename_with(~ gsub(" Intensity", "", .x, fixed = T)) %>%
+            select(sums, matches(input$x_input), matches(input$y_input)) 
+        
+        if (input$log_trans == 'yes'){
+            intensity_with_sums <- intensity_with_sums %>%
+                mutate_at(vars(2:3), log)
+        }
+        else {
+            intensity_with_sums
+        }
+        
+        intensity_no_pos <- intensity_with_sums %>% 
+            filter(sums == 0) 
+        intensity_ind_pos <- intensity_with_sums %>% 
+            filter(sums == 1)
+        intensity_double_pos <- intensity_with_sums %>% 
+            filter(sums == 2)
+        
+        ggplot(intensity_no_pos, aes(x=matches(input$x_input), y = matches(input$y_input))) +
+            geom_hex(bins = 200, alpha = 0.4) +
+            geom_hex(data = intensity_ind_pos, alpha = 0.4, bins = 200, aes(x=matches(input$x_input), y = matches(input$y_input))) +
+            geom_hex(data = intensity_double_pos, alpha = 1.0, bins = 200, aes(x=matches(input$x_input), y = matches(input$y_input)))
         
     })
     
@@ -213,5 +290,5 @@ shinyServer(function(input, output, session) {
             subset_of_all
         }
     })
-
+    
 })

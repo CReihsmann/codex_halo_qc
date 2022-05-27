@@ -24,13 +24,28 @@ shinyUI(fluidPage(
             radioButtons('radio_bar',
                          'Select bar chart',
                          choices = c("% of subset",
-                                    "% of whole" ))
+                                     "% of whole" )),
+            selectInput('y_input',
+                        'y_axis',
+                        choices = 'none',
+                        multiple = F,
+                        selectize = T),
+            selectInput('x_input',
+                        'x_axis',
+                        choices = 'none',
+                        multiple = F,
+                        selectize = T),
+            radioButtons('log_trans',
+                         'Log Transformation',
+                         choices = c('yes', 
+                                     'no'))
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
             plotlyOutput("barChart"),
-            plotOutput("doughnutChart")
+            plotOutput("intensityChart")
         )
     )
 ))
+
