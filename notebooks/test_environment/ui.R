@@ -45,12 +45,22 @@ shinyUI(fluidPage(
                                'positive',
                                'double positive',
                                'positive (no double positive)',
-                               'negative'))
+                               'negative')),
+      selectInput('marker_1',
+                  'Marker 1',
+                  choices = 'none',
+                  multiple = F,
+                  selectize = T),
+      selectInput('marker_2',
+                  'Marker 2',
+                  choices = 'none',
+                  multiple = F,
+                  selectize = T)
     ),
     
     # Show a plot of the generated distribution
     mainPanel(
-      plotOutput("cellMap", height = "100vh")
+      dataTableOutput("cellMap")
     )
   )
 ))

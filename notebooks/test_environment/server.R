@@ -76,9 +76,17 @@ shinyServer(function(input, output, session) {
                       'x_input',
                       choices = markers_intensity_dict)
     
+    updateSelectInput(session,
+                      'marker_1',
+                      choices = markers_dict)
+    
+    updateSelectInput(session,
+                      'marker_2',
+                      choices = markers_dict)
+    
   })
   
-  output$intensityChart <- renderPlot({
+  output$intensityChart <- renderPlotly({
     
     x_marker <- word(input$x_input, 1)
     y_marker <- word(input$y_input, 1)
@@ -100,7 +108,7 @@ shinyServer(function(input, output, session) {
       merge(class_sums) %>%
       rename_with(~ gsub(" Intensity", "", .x, fixed = T)) %>%
       select(sums, matches(input$x_input), matches(input$y_input))
-
+    
     if (input$log_trans == 'yes'){
       intensity_with_sums <- intensity_with_sums %>%
         mutate_at(vars(2:3), log)
@@ -108,84 +116,119 @@ shinyServer(function(input, output, session) {
     else {
       intensity_with_sums
     }
-
+    
     intensity_no_pos <- intensity_with_sums %>%
       filter(sums == 0)
     intensity_ind_pos <- intensity_with_sums %>%
       filter(sums == 1)
     intensity_double_pos <- intensity_with_sums %>%
       filter(sums == 2)
-
+    
     if (input$intensity_choices == 'all'){
       intensity_no_pos %>% 
         bind_rows(intensity_ind_pos) %>% 
         bind_rows(intensity_double_pos) %>% 
         ggplot(aes(x=!!as.name(input$x_input), y=!!as.name(input$y_input)))+
-        geom_hex(bins = 200, alpha = 1.0)
+        geom_hex(bins = 200, alpha = 1.0) +
+        theme_minimal() +
+        theme(aspect.ratio = 1/1)
     }
     else if (input$intensity_choices == 'positive') {
       intensity_ind_pos %>% 
         bind_rows(intensity_double_pos) %>% 
         ggplot(aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
         geom_hex(bins = 200, alpha = 1.0)+
-        geom_hex(data = intensity_no_pos, alpha = 0.4, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input))) 
+        geom_hex(data = intensity_no_pos, alpha = 0.4, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+        theme_minimal() +
+        theme(aspect.ratio = 1/1) 
     }
     else if (input$intensity_choices == 'double positive') {
       intensity_no_pos %>% 
         bind_rows(intensity_ind_pos) %>% 
         ggplot(aes(x=!!as.name(input$x_input), y=!!as.name(input$y_input)))+
         geom_hex(bins = 200, alpha = 0.4) +
-        geom_hex(data = intensity_double_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))
+        geom_hex(data = intensity_double_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+        theme_minimal() +
+        theme(aspect.ratio = 1/1)
     }
     else if (input$intensity_choices == 'positive (no double positive)') {
       intensity_double_pos %>% 
         bind_rows(intensity_no_pos) %>% 
         ggplot(aes(x=!!as.name(input$x_input), y=!!as.name(input$y_input)))+
         geom_hex(bins = 200, alpha = 0.4)+
-        geom_hex(data = intensity_ind_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))
+        geom_hex(data = intensity_ind_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+        theme_minimal() +
+        theme(aspect.ratio = 1/1)
     }
     else if(input$intensity_choices == 'negative') {
       intensity_double_pos %>% 
         bind_rows(intensity_ind_pos) %>% 
         ggplot(aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
         geom_hex(bins = 200, alpha = 0.4)+
-        geom_hex(data = intensity_no_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))
+        geom_hex(data = intensity_no_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+        theme_minimal() +
+        theme(aspect.ratio = 1/1)
     }
     
-
+    
   })
   
-  output$cellMap <-renderPlot({
+  output$cellMap <-renderDataTable({
     
-    coordinates <- uploaded_file() %>% 
+    x_y_coord <- uploaded_file() %>% 
       select(`Object Id`, XMin:YMax) %>% 
       mutate(x = round((XMin + XMax)/2, 0),
              y = round((YMin + YMax)/2, 0)) %>% 
-      select(`Object Id`, x, y) 
+      select(`Object Id`, x, y)
     
-    coord_classifications <- coord_classifications %>% 
-      left_join(classification_col_filter())
-    
-  class_x <- coord_classifications %>% 
-    select(`Object Id`, !!as.name(input$barChart_input)) 
-  class_y <- coord_classifications %>% 
-    select(`Object Id`, !!as.name(Input$barchart_input))
-  class_both <- class_x %>% 
-    left_join(class_y)
-  class_sums <- class_both %>% 
-    mutate(sums = rowSums(.[2:3]))
-  
-  no_pos_class <- class_sums %>% 
-    filter(sums == 0) 
-  
-  positive_class <- class_sums %>% 
-    filter(sums >=1) %>% 
-      
-    
-      ggplot(coordinates, aes(x = x, y = y))+
-      geom_point()+
-      theme_void()+
-      theme(aspect.ratio = max(coordinates$y)/max(coordinates$x))
+    classification_cols <- classification_col_filter() %>% 
+      right_join(x_y_coord)
+
+    marker1 = input$marker_1
+    marker2 = input$marker_2
+
+    class_x <- classification_cols %>%
+      select(`Object Id`, x, y, matches(marker1))# %>%
+      #filter(!!get(input$marker_1) == 1)
+    # class_y <- classification_cols %>%
+    #   select(`Object Id`, x, y, matches(marker2)) %>%
+    #   filter(!!as.name(input$marker_2) == 1)
+
+    # dp_cells <- class_x %>%
+    #   inner_join(class_y) %>%
+    #   mutate(marker = 'Double Positive') %>%
+    #   select(!matches(marker1, marker2))
+    # 
+    # dp_ob_ids <- dp_cells$`Object Id`
+    # 
+    # class_x_only <- class_x %>%
+    #   filter(`Object Id` != dp_ob_ids) %>%
+    #   mutate(marker = marker1) %>%
+    #   select(!matches(marker1))
+    # 
+    # class_y_only <- class_y %>%
+    #   filter(`Object Id` != dp_ob_ids) %>%
+    #   mutate(marker = marker2) %>%
+    #   select(!matches(marker2))
+    # 
+    # comb_markers <- class_x_only %>%
+    #   bind_rows(class_y_only)
+    # marker_ob_ids <- comb_markers$`Object Id`
+    # x_y_none <- x_y_coord %>%
+    #   filter(`Object Id` != marker_ob_ids) %>%
+    #   mutate(marker = 'Negative')
+    # 
+    # x_y_none %>%
+    #   ggplot(aes(x, y, color=marker)) +
+    #   geom_point(size = 0.7, alpha = 0.2, shape = 16) +
+    #   geom_point(data = comb_markers, size = 1.1, alpha = 1, shape = 16, aes(x, y))+
+    #   geom_point(data = dp_cells, size = 1.1, alpha = 1, shape = 16, aes(x,y))+
+    #   theme_void()+
+    #   theme(aspect.ratio = (max(x_y_coord$x)/max(x_y_coord$y)))+
+    #   scale_color_manual(values = c(marker1 = 'blue',
+    #                                 marker2 = 'red',
+    #                                 'Double Positive' = 'green',
+    #                                 'Negative' = 'grey50'))
   })
   
   total_cells <- reactive({
