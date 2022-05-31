@@ -17,6 +17,12 @@ shinyUI(fluidPage(
                         choices = 'none',
                         multiple = T,
                         selectize = T),
+            selectInput('map_marker1',
+                        'Marker 1',
+                        choices = 'none'),
+            selectInput('map_marker2',
+                        'Marker 2',
+                        choices = 'none'),
             radioButtons('radio_donut', 
                          'Select Doghnut Chart',
                          choices = c("% of subset",
@@ -38,14 +44,19 @@ shinyUI(fluidPage(
             radioButtons('log_trans',
                          'Log Transformation',
                          choices = c('yes', 
-                                     'no'))
+                                     'no')),
+            radioButtons('intensity_choices',
+                         'Intensity Values',
+                         choices = c('all',
+                                     'positive',
+                                     'double positive',
+                                     'positive (no double positive)',
+                                     'negative'))
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotlyOutput("barChart"),
             plotOutput("intensityChart")
         )
     )
 ))
-

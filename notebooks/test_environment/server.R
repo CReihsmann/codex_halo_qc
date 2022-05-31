@@ -25,7 +25,7 @@ shinyServer(function(input, output, session) {
         uploaded_file() %>%
             select(`Object Id`, contains('Intensity')) %>%
             rename_with(~ gsub(" Intensity", "", .x, fixed = T))
-
+        
     })
     
     observeEvent(input$file, {
@@ -47,7 +47,7 @@ shinyServer(function(input, output, session) {
         }
         
         markers_intensity = c()
-
+        
         for(i in marker_names_intensity){
             print(i)
             i = str_replace(i, '([.])', "-")
@@ -67,23 +67,23 @@ shinyServer(function(input, output, session) {
         updateSelectInput(session,
                           'barChart_input',
                           choices = markers_dict)
-
+        
         updateSelectInput(session,
                           'y_input',
                           choices = markers_intensity_dict)
-
+        
         updateSelectInput(session,
                           'x_input',
                           choices = markers_intensity_dict)
-
+        
     })
     
-    output$intensityChart <- renderPlot({
+    output$intensityChart <- renderPlotly({
         
         x_marker <- word(input$x_input, 1)
         y_marker <- word(input$y_input, 1)
         dataset <- uploaded_file()
-
+        
         intensity_class_x <- dataset %>%
             select(`Object Id`, contains(x_marker))
         intensity_class_y <- dataset %>%
@@ -91,15 +91,15 @@ shinyServer(function(input, output, session) {
         intensity_all <- intensity_class_x %>%
             merge(intensity_class_y)
         class_sums <- intensity_all %>%
-            select(`Object Id`, contains('Positive Classification')) %>%
-            mutate(sums = rowSums(.[2:3])) %>% 
+            select(`Object Id`, contains('Positive Classification')) %>% 
+            mutate(sums = rowSums(.[2:3])) %>%
             select(`Object Id`, sums)
-
+        
         intensity_with_sums <- intensity_all %>%
             select(`Object Id`, contains('Intensity')) %>%
             merge(class_sums) %>%
             rename_with(~ gsub(" Intensity", "", .x, fixed = T)) %>%
-            select(sums, matches(input$x_input), matches(input$y_input)) 
+            select(sums, matches(input$x_input), matches(input$y_input))
         
         if (input$log_trans == 'yes'){
             intensity_with_sums <- intensity_with_sums %>%
@@ -109,35 +109,94 @@ shinyServer(function(input, output, session) {
             intensity_with_sums
         }
         
-        intensity_no_pos <- intensity_with_sums %>% 
-            filter(sums == 0) 
-        intensity_ind_pos <- intensity_with_sums %>% 
+        intensity_no_pos <- intensity_with_sums %>%
+            filter(sums == 0)
+        intensity_ind_pos <- intensity_with_sums %>%
             filter(sums == 1)
-        intensity_double_pos <- intensity_with_sums %>% 
+        intensity_double_pos <- intensity_with_sums %>%
             filter(sums == 2)
         
-        ggplot(intensity_no_pos, aes(x=matches(input$x_input), y = matches(input$y_input))) +
-            geom_hex(bins = 200, alpha = 0.4) +
-            geom_hex(data = intensity_ind_pos, alpha = 0.4, bins = 200, aes(x=matches(input$x_input), y = matches(input$y_input))) +
-            geom_hex(data = intensity_double_pos, alpha = 1.0, bins = 200, aes(x=matches(input$x_input), y = matches(input$y_input)))
+        if (input$intensity_choices == 'all'){
+            intensity_no_pos %>% 
+                bind_rows(intensity_ind_pos) %>% 
+                bind_rows(intensity_double_pos) %>% 
+                ggplot(aes(x=!!as.name(input$x_input), y=!!as.name(input$y_input)))+
+                geom_hex(bins = 200, alpha = 1.0) +
+                theme_minimal() +
+                theme(aspect.ratio = 1/1)
+        }
+        else if (input$intensity_choices == 'positive') {
+            intensity_ind_pos %>% 
+                bind_rows(intensity_double_pos) %>% 
+                ggplot(aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+                geom_hex(bins = 200, alpha = 1.0)+
+                geom_hex(data = intensity_no_pos, alpha = 0.4, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+                theme_minimal() +
+                theme(aspect.ratio = 1/1) 
+        }
+        else if (input$intensity_choices == 'double positive') {
+            intensity_no_pos %>% 
+                bind_rows(intensity_ind_pos) %>% 
+                ggplot(aes(x=!!as.name(input$x_input), y=!!as.name(input$y_input)))+
+                geom_hex(bins = 200, alpha = 0.4) +
+                geom_hex(data = intensity_double_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+                theme_minimal() +
+                theme(aspect.ratio = 1/1)
+        }
+        else if (input$intensity_choices == 'positive (no double positive)') {
+            intensity_double_pos %>% 
+                bind_rows(intensity_no_pos) %>% 
+                ggplot(aes(x=!!as.name(input$x_input), y=!!as.name(input$y_input)))+
+                geom_hex(bins = 200, alpha = 0.4)+
+                geom_hex(data = intensity_ind_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+                theme_minimal() +
+                theme(aspect.ratio = 1/1)
+        }
+        else if(input$intensity_choices == 'negative') {
+            intensity_double_pos %>% 
+                bind_rows(intensity_ind_pos) %>% 
+                ggplot(aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+                geom_hex(bins = 200, alpha = 0.4)+
+                geom_hex(data = intensity_no_pos, alpha = 1.0, bins = 200, aes(x=!!as.name(input$x_input), y = !!as.name(input$y_input)))+
+                theme_minimal() +
+                theme(aspect.ratio = 1/1)
+        }
+        
         
     })
     
-    output$cellMap <-renderPlot({
-        
-        uploaded_file() %>% 
-            select(XMin:YMax) %>% 
-            mutate(x = round((XMin + XMax)/2, 0),
-                   y = round((YMin + YMax)/2, 0)) %>% 
-            select(x, y) %>% 
-            ggplot(aes(x = x, y = y))+
-            geom_point()
-        
-        
-        # fig <- plot_ly(data = x_y_coord,
-        #                x = ~x,
-        #                y = ~y)
-    })
+    # output$cellMap <-renderPlot({
+    #     
+    #     coordinates <- uploaded_file() %>% 
+    #         select(`Object Id`, XMin:YMax) %>% 
+    #         mutate(x = round((XMin + XMax)/2, 0),
+    #                y = round((YMin + YMax)/2, 0)) %>% 
+    #         select(`Object Id`, x, y) 
+    #     
+    #     coord_classifications <- coord_classifications %>% 
+    #         left_join(classification_col_filter())
+    #     
+    #     class_x <- coord_classifications %>% 
+    #         select(`Object Id`, !!as.name(input$barChart_input)) 
+    #     class_y <- coord_classifications %>% 
+    #         select(`Object Id`, !!as.name(Input$barchart_input))
+    #     class_both <- class_x %>% 
+    #         left_join(class_y)
+    #     class_sums <- class_both %>% 
+    #         mutate(sums = rowSums(.[2:3]))
+    #     
+    #     no_pos_class <- class_sums %>% 
+    #         filter(sums == 0) 
+    #     
+    #     positive_class <- class_sums %>% 
+    #         filter(sums >=1) %>% 
+    #         
+    #         
+    #         ggplot(coordinates, aes(x = x, y = y))+
+    #         geom_point()+
+    #         theme_void()+
+    #         theme(aspect.ratio = max(coordinates$y)/max(coordinates$x))
+    # })
     
     total_cells <- reactive({
         as.numeric((nrow(classification_col_filter())))
