@@ -1,34 +1,52 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
-library(shiny)
+library(shinydashboard)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-
-    # Application title
-    titlePanel("Old Faithful Geyser Data"),
-
-    # Sidebar with a slider input for number of bins
-    sidebarLayout(
-        sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30),
-            fileInput("file", label = h4("Data"))
-        ),
-
-        # Show a plot of the generated distribution
-        mainPanel(
-            plotOutput("distPlot")
-        )
+  dashboardPage(
+    dashboardHeader(title = 'HALO Object Analysis'),
+    
+    dashboardSidebar(width = 300,
+                     sidebarMenu(
+                       menuItem('Data Upload', 
+                                tabName = 'file_input',
+                                fileInput('file',
+                                          label = h3('File input'),
+                                          multiple = F,
+                                          accept = c(".tsv",
+                                                     ".csv"))),
+                       menuItem('Marker Comparisons', 
+                                tabName = 'comparisons',
+                                radioButtons('subset_bar',
+                                             'Bar Chart',
+                                             choices = c('% of subset',
+                                                         '% of whole')),
+                                radioButtons('subset_pie',
+                                             'Pie Chart',
+                                             choices = c('% of subset',
+                                                         '% of whole'))),
+                       menuItem('Intensity Comparison',
+                                tabName = 'intensities'),
+                       menuItem('Tissue Representation',
+                                'cell_map'),
+                       menuItem('Data Tables',
+                                'datatable')
+                     )
+    ),
+    dashboardBody(
+      tabItem(tabName = 'file_input',
+              tabBox(width = 12,
+                title = "Dataset",
+                     id = 'dataset',
+                     tabPanel("Classifications",
+                              dataTableOutput('classification_dataset')),
+                     tabPanel('Intensities',
+                              dataTableOutput('intensity_dataset')),
+                     tabPanel('Full Dataset',
+                              dataTableOutput('full_dataset'))
+              )
+      )
+      tabItem(tabName = 'comparisons',
+              plotOutput('barChart'))
     )
-))
+  ))
+)
