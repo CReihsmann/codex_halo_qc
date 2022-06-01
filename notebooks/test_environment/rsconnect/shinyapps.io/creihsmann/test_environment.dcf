@@ -5,9 +5,9 @@ account: creihsmann
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6371452
-bundleId: 5945416
+bundleId: 5965933
 url: https://creihsmann.shinyapps.io/test_environment/
-when: 1653518704.73445
-lastSyncTime: 1653518704.73445
+when: 1654048819.22105
+lastSyncTime: 1654048819.22105
 asMultiple: FALSE
 asStatic: FALSE

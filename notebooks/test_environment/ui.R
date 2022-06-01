@@ -17,12 +17,6 @@ shinyUI(fluidPage(
                         choices = 'none',
                         multiple = T,
                         selectize = T),
-            selectInput('map_marker1',
-                        'Marker 1',
-                        choices = 'none'),
-            selectInput('map_marker2',
-                        'Marker 2',
-                        choices = 'none'),
             radioButtons('radio_donut', 
                          'Select Doghnut Chart',
                          choices = c("% of subset",
@@ -51,12 +45,23 @@ shinyUI(fluidPage(
                                      'positive',
                                      'double positive',
                                      'positive (no double positive)',
-                                     'negative'))
+                                     'negative')),
+            selectInput('marker_1',
+                        'Marker 1',
+                        choices = 'none',
+                        multiple = F,
+                        selectize = T),
+            selectInput('marker_2',
+                        'Marker 2',
+                        choices = 'none',
+                        multiple = F,
+                        selectize = T)
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
-            plotOutput("intensityChart")
+            tags$style(type = "text/css", "#cellMap {height: calc(100vh - 10px) !important;}"),
+            fillPage(plotlyOutput("cellMap", height="100%", width="100%"))
         )
     )
 ))

@@ -76,6 +76,14 @@ shinyServer(function(input, output, session) {
                           'x_input',
                           choices = markers_intensity_dict)
         
+        updateSelectInput(session,
+                          'marker_1',
+                          choices = markers_dict)
+        
+        updateSelectInput(session,
+                          'marker_2',
+                          choices = markers_dict)
+        
     })
     
     output$intensityChart <- renderPlotly({
@@ -165,38 +173,78 @@ shinyServer(function(input, output, session) {
         
     })
     
-    # output$cellMap <-renderPlot({
-    #     
-    #     coordinates <- uploaded_file() %>% 
-    #         select(`Object Id`, XMin:YMax) %>% 
-    #         mutate(x = round((XMin + XMax)/2, 0),
-    #                y = round((YMin + YMax)/2, 0)) %>% 
-    #         select(`Object Id`, x, y) 
-    #     
-    #     coord_classifications <- coord_classifications %>% 
-    #         left_join(classification_col_filter())
-    #     
-    #     class_x <- coord_classifications %>% 
-    #         select(`Object Id`, !!as.name(input$barChart_input)) 
-    #     class_y <- coord_classifications %>% 
-    #         select(`Object Id`, !!as.name(Input$barchart_input))
-    #     class_both <- class_x %>% 
-    #         left_join(class_y)
-    #     class_sums <- class_both %>% 
-    #         mutate(sums = rowSums(.[2:3]))
-    #     
-    #     no_pos_class <- class_sums %>% 
-    #         filter(sums == 0) 
-    #     
-    #     positive_class <- class_sums %>% 
-    #         filter(sums >=1) %>% 
-    #         
-    #         
-    #         ggplot(coordinates, aes(x = x, y = y))+
-    #         geom_point()+
-    #         theme_void()+
-    #         theme(aspect.ratio = max(coordinates$y)/max(coordinates$x))
-    # })
+    output$cellMap <-renderPlotly({
+        
+        x_y_coord <- uploaded_file() %>% 
+            select(`Object Id`, XMin:YMax) %>% 
+            mutate(x = round((XMin + XMax)/2, 0),
+                   y = round((YMin + YMax)/2, 0)) %>% 
+            select(`Object Id`, x, y)
+        
+        classification_cols <- classification_col_filter() %>% 
+            right_join(x_y_coord)
+        
+        marker1 = input$marker_1
+        marker2 = input$marker_2
+        
+        class_x <- classification_cols %>%
+            select(`Object Id`, x, y, matches(marker1)) %>%
+            filter(!!as.name(input$marker_1) == 1)
+        class_y <- classification_cols %>%
+            select(`Object Id`, x, y, matches(marker2)) %>%
+            filter(!!as.name(input$marker_2) == 1)
+        
+        dp_cells <- class_x %>%
+            inner_join(class_y) %>%
+            mutate(marker = 'Double Positive') %>%
+            select(!matches(marker1, marker2))
+        
+        dp_ob_ids <- dp_cells$`Object Id`
+        
+        class_x_only <- class_x %>%
+            filter(`Object Id` != dp_ob_ids) %>%
+            mutate(marker = marker1) %>%
+            select(!matches(marker1))
+        
+        class_y_only <- class_y %>%
+            filter(`Object Id` != dp_ob_ids) %>%
+            mutate(marker = marker2) %>%
+            select(!matches(marker2))
+        
+        if (nrow(class_x_only) > 0 & nrow(class_y_only) > 0) {
+            comb_markers <- class_x_only %>%
+                bind_rows(class_y_only)
+        }
+        else if (nrow(class_x_only) == 0 & nrow(class_y_only) > 0) {
+            comb_markers <- class_y_only
+        }
+        else if (nrow(class_y_only) == 0 & nrow(class_x_only) > 0) {
+            comb_markers <- class_x_only
+        }
+        else if (nrow(class_y_only) == 0 & nrow(class_x_only) == 0) {
+            comb_markers <- x_y_coord 
+        }
+        marker_ob_ids <- comb_markers$`Object Id`
+        x_y_none <- x_y_coord %>%
+            filter(`Object Id` != marker_ob_ids) %>%
+            mutate(marker = 'Negative')
+        
+        partial_bundle(toWebGL(x_y_none %>%
+            ggplot(aes(x, y, color=marker)) +
+            geom_point(size = 0.7, alpha = 0.2, shape = 16) +
+            geom_point(data = comb_markers, size = 1.1, alpha = 1, shape = 16, aes(x, y))+
+            geom_point(data = dp_cells, size = 1.1, alpha = 1, shape = 16, aes(x,y))+
+            theme_void()+
+            theme(aspect.ratio = (max(x_y_coord$x)/max(x_y_coord$y)),
+                  legend.key.size = unit(2, 'cm'),
+                  legend.title = element_text(size = 20),
+                  legend.text = element_text(size = 16)) +
+            guides(color = guide_legend(override.aes = list(size=5))) +
+            scale_color_manual(values = c(marker1 = 'blue',
+                                          marker2 = 'red',
+                                          'Double Positive' = 'green',
+                                          'Negative' = 'grey50'))))
+    })
     
     total_cells <- reactive({
         as.numeric((nrow(classification_col_filter())))
