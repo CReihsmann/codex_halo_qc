@@ -1,12 +1,3 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shinydashboard)
 
 # Define UI for application that draws a histogram
@@ -23,22 +14,49 @@ shinyUI(fluidPage(
                                                 multiple = F,
                                                 accept = c(".tsv",
                                                            ".csv"))),
-                             menuItem('Bar Charts', 
-                                      tabName = 'bar_donut',
-                                      radioButtons('subset_or_whole',
-                                                   'Subset or Whole Tissue',
-                                                   choices = c('% of subset',
-                                                               '% of whole'))),
+                             menuItem('Marker Comparisons', 
+                                      tabName = 'comparisons'),
                              menuItem('Intensity Comparison',
                                       tabName = 'intensities'),
                              menuItem('Tissue Representation',
-                                      'cell_map'),
+                                      tabName = 'cell_map'),
                              menuItem('Data Tables',
-                                      'datatable')
+                                      tabName = 'datatable')
                          )
         ),
         dashboardBody(
-            
+            tabItems(
+                tabItem(tabName = 'comparisons',
+                        fluidRow(column(3,
+                                        radioButtons('subset_pie',
+                                                     'Pie Chart',
+                                                     choices = c('% of subset',
+                                                                 '% of whole')),
+                                        radioButtons('subset_bar',
+                                                     'Bar Chart',
+                                                     choices = c('% of subset',
+                                                                 '% of whole')),
+                                        selectInput('barChart_input',
+                                                    'markers',
+                                                    choices = 'none',
+                                                    multiple = T,
+                                                    selectize = T)),
+                                 column(9,
+                                        plotlyOutput('doughnutChart'))),
+                        fluidRow(12, plotOutput('barChart'))),
+                tabItem(tabName = 'datatable',
+                        tabBox(width = 12,
+                               title = "Dataset",
+                               id = 'dataset',
+                               tabPanel("Classifications",
+                                        dataTableOutput('classification_dataset')),
+                               tabPanel('Intensities',
+                                        dataTableOutput('intensity_dataset')),
+                               tabPanel('Full Dataset',
+                                        dataTableOutput('full_dataset')))
+                )
+            )
+            )
         )
-    ))
-)
+))
+    
