@@ -26,8 +26,19 @@ doughnut_totals <- reactive({
     
     classification_col_filter() %>% 
         summarise_at(2:ncol(classification_col_filter()), sum) %>% 
-        select(matches(input$barChart_input)) %>% 
+        select(matches(comp_markers())) %>% 
         mutate(total_of_subset = rowSums(across(1:last_col()))) %>% 
         mutate(other_cells = total_cells - total_of_subset) %>% 
         relocate(c(total_of_subset, other_cells), .before = 1)
+})
+
+comp_markers <- eventReactive(input$comp_reset, {
+    input$barChart_input
+})
+
+intensity_markers_y <- eventReactive(input$intensity_reset, {
+    input$y_input
+})
+intensity_markers_x <- eventReactive(input$intensity_reset, {
+    input$x_input
 })
