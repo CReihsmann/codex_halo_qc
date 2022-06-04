@@ -23,45 +23,61 @@ output$barChart <- renderPlot({
         rename(markers = name.x)
     
     totals_2 <- totals %>% 
-        pivot_longer(1:ncol(totals), names_to = 'markers', values_to = 'non_dp')
+        pivot_longer(1:ncol(totals), names_to = 'markers', values_to = 'Target Cell')
     
     filtered_markers <- double_pos_occurances %>% 
         select(matches(comp_markers())) %>% 
         ungroup()%>% 
         filter(markers %in% comp_markers()) %>% 
         mutate(sums = rowSums(across(where(is.numeric))))
+    colnames(filtered_markers) <- paste(colnames(filtered_markers), 'double +', sep = ' ')
+    filtered_markers <- filtered_markers %>% 
+        rename(markers = `markers double +`) %>% 
+        rename(sums = `sums double +`)
     
     if (input$subset_bar == '% of whole') {
         final_df <- filtered_markers %>% 
             left_join(totals_2) %>%  
-            select(!sums)%>% 
+            select(!sums) %>% 
             pivot_longer(2:last_col(), names_to = 'dp_markers', values_to = 'dp_rates') %>%
-            mutate(percentage_of_total = round((dp_rates/total_cells)*100, 2)) %>% 
+            mutate(percentage_of_total = round((dp_rates/total_cells)*100, 2)) %>%
+            filter(percentage_of_total != 0) %>%
             select(markers, dp_markers, percentage_of_total) %>%
-            arrange(percentage_of_total) 
+            arrange(percentage_of_total)
         
-        final_df %>% 
+        final_df %>%
             ggplot(aes(x=markers, y = percentage_of_total, fill = reorder(dp_markers, percentage_of_total)))+
-            geom_col(position = 'dodge')+
-            theme_minimal()
+            geom_col(position = position_dodge(preserve = 'single')) +
+            coord_flip() +
+            theme_minimal() +
+            labs(title = 'Percent of Whole Tissue',
+                 fill = 'Target Cell & \n Double Positives',
+                 x = 'Percent (%)',
+                 y = 'Markers')
     }
     else {
-        total_of_subset_prep <- totals %>% 
+        total_of_subset_prep <- totals %>%
             pivot_longer(1:last_col(), names_to = 'markers', values_to = 'totals_cell')
         
         total_of_subset <- as.numeric(sum(total_of_subset_prep$totals_cell))
         
-        final_df <- filtered_markers %>% 
-            left_join(totals_2) %>%  
-            select(!sums) %>% 
-            mutate_if(is.numeric, ~ round(.x/total_of_subset*100,2))%>% 
-            pivot_longer(2:last_col(), names_to = 'dp_markers', values_to = 'dp_rates') %>% 
+        final_df <- filtered_markers %>%
+            left_join(totals_2) %>%
+            select(!sums) %>%
+            mutate_if(is.numeric, ~ round(.x/total_of_subset*100,2))%>%
+            pivot_longer(2:last_col(), names_to = 'dp_markers', values_to = 'dp_rates') %>%
+            filter(dp_rates != 0) %>%
             select(markers, dp_markers, dp_rates)
         
         final_df%>%
             ggplot(aes(x=markers, y = dp_rates, fill = reorder(dp_markers, dp_rates)))+
-            geom_col(position = 'dodge') +
-            theme_minimal()
+            geom_col(position = position_dodge(preserve = 'single')) +
+            coord_flip() +
+            theme_minimal() +
+            labs(title = 'Percent of Subset',
+                 fill = 'Target Cell & \n Double Positives',
+                 x = 'Percent (%)',
+                 y = 'Markers')
     }
 })
 
@@ -76,7 +92,8 @@ output$doughnutChart <- renderPlotly({
             plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
                     textinfo = 'label+percent',
                     insidetextorientation='radial') %>% 
-            add_pie()
+            add_pie() %>% 
+            layout(yaxis = list(automargin = T))
         
         subset_totals
     }
@@ -88,7 +105,8 @@ output$doughnutChart <- renderPlotly({
             plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
                     textinfo = 'label+percent',
                     insidetextorientation='radial') %>% 
-            add_pie()
+            add_pie() %>% 
+            layout(autosize = T)
         
         subset_of_all
     }
@@ -110,13 +128,13 @@ output$intensityChart <- renderPlotly({
         select(`Object Id`, contains('Positive Classification')) %>% 
         mutate(sums = rowSums(.[2:3])) %>%
         select(`Object Id`, sums)
-
+    
     intensity_with_sums <- intensity_all %>%
         select(`Object Id`, contains('Intensity')) %>%
         merge(class_sums) %>%
         rename_with(~ gsub(" Intensity", "", .x, fixed = T)) %>%
         select(sums, matches(intensity_markers_x()), matches(intensity_markers_y()))
-
+    
     if (input$log_trans == 'yes'){
         intensity_with_sums <- intensity_with_sums %>%
             mutate_at(vars(2:3), log)
@@ -124,14 +142,14 @@ output$intensityChart <- renderPlotly({
     else {
         intensity_with_sums
     }
-
+    
     intensity_no_pos <- intensity_with_sums %>%
         filter(sums == 0)
     intensity_ind_pos <- intensity_with_sums %>%
         filter(sums == 1)
     intensity_double_pos <- intensity_with_sums %>%
         filter(sums == 2)
-
+    
     if (input$intensity_choices == 'all'){
         intensity_no_pos %>%
             bind_rows(intensity_ind_pos) %>%
@@ -190,80 +208,109 @@ output$cellMap <-renderPlotly({
     classification_cols <- classification_col_filter() %>% 
         right_join(x_y_coord)
     
-    marker1 = input$marker_1
-    marker2 = input$marker_2
+    marker1 = cell_mapping_m1()
+    marker2 = cell_mapping_m2()
     
     class_x <- classification_cols %>%
         select(`Object Id`, x, y, matches(marker1)) %>%
-        filter(!!as.name(input$marker_1) == 1)
+        filter(!!as.name(marker1) == 1)
     class_y <- classification_cols %>%
         select(`Object Id`, x, y, matches(marker2)) %>%
-        filter(!!as.name(input$marker_2) == 1)
+        filter(!!as.name(marker2) == 1)
     
     dp_cells <- class_x %>%
         inner_join(class_y) %>%
         mutate(marker = 'Double Positive') %>%
-        select(!matches(marker1, marker2))
+        select(!c(matches(marker1), matches(marker2)))
     
     dp_ob_ids <- dp_cells$`Object Id`
     
     class_x_only <- class_x %>%
-        filter(`Object Id` != dp_ob_ids) %>%
+        filter(!`Object Id` %in% dp_ob_ids) %>%
         mutate(marker = marker1) %>%
         select(!matches(marker1))
     
     class_y_only <- class_y %>%
-        filter(`Object Id` != dp_ob_ids) %>%
+        filter(!`Object Id` %in% dp_ob_ids) %>%
         mutate(marker = marker2) %>%
         select(!matches(marker2))
     
-    # if (nrow(class_x_only) > 0 & nrow(class_y_only) > 0) {
     comb_markers <- class_x_only %>%
-        bind_rows(class_y_only)
-    # }
-    # else if (nrow(class_x_only) == 0 & nrow(class_y_only) > 0) {
-    #     comb_markers <- class_y_only
-    # }
-    # else if (nrow(class_y_only) == 0 & nrow(class_x_only) > 0) {
-    #     comb_markers <- class_x_only
-    # }
-    # else if (nrow(class_y_only) == 0 & nrow(class_x_only) == 0) {
-    #     comb_markers <- x_y_coord 
-    # }
+        bind_rows(class_y_only) %>%
+        bind_rows(dp_cells)
+    
     marker_ob_ids <- comb_markers$`Object Id`
+    
     x_y_none <- x_y_coord %>%
-        filter(`Object Id` != marker_ob_ids) %>%
+        filter(!`Object Id` %in% marker_ob_ids) %>%
         mutate(marker = 'Negative')
-    final_graph <-(x_y_none %>%
-                       ggplot(aes(x, y, color=marker)) +
-                       geom_point(size = 0.7, alpha = 0.2, shape = 16) +
-                       geom_point(data = comb_markers, size = 1.1, alpha = 1, shape = 16, aes(x, y))+
-                       geom_point(data = dp_cells, size = 1.1, alpha = 1, shape = 16, aes(x,y))+
-                       theme_void()+
-                       theme(aspect.ratio = (max(x_y_coord$x)/max(x_y_coord$y)),
-                             legend.key.size = unit(2, 'cm'),
-                             legend.title = element_text(size = 20),
-                             legend.text = element_text(size = 16)) +
-                       guides(color = guide_legend(override.aes = list(size=5))) +
-                       scale_color_manual(values = c(marker1 = 'blue',
-                                                     marker2 = 'red',
-                                                     'Double Positive' = 'green',
-                                                     'Negative' = 'grey50')))
-    final_graph %>% 
-        toWebGL()
-    # partial_bundle(toWebGL(x_y_none %>%
-    #                            ggplot(aes(x, y, color=marker)) +
-    #                            geom_point(size = 0.7, alpha = 0.2, shape = 16) +
-    #                            geom_point(data = comb_markers, size = 1.1, alpha = 1, shape = 16, aes(x, y))+
-    #                            geom_point(data = dp_cells, size = 1.1, alpha = 1, shape = 16, aes(x,y))+
-    #                            theme_void()+
-    #                            theme(aspect.ratio = (max(x_y_coord$x)/max(x_y_coord$y)),
-    #                                  legend.key.size = unit(2, 'cm'),
-    #                                  legend.title = element_text(size = 20),
-    #                                  legend.text = element_text(size = 16)) +
-    #                            guides(color = guide_legend(override.aes = list(size=5))) +
-    #                            scale_color_manual(values = c(marker1 = 'blue',
-    #                                                          marker2 = 'red',
-    #                                                          'Double Positive' = 'green',
-    #                                                          'Negative' = 'grey50'))))
+    
+    axis = list(showgrid = FALSE, showticklabels = FALSE, showgrid = FALSE)
+    bg_color = '#000000'
+    tx_color = list(color = '#000000',
+    size = 16,
+    bgcolor = '#FFFFFF')
+    lg_layout = list(font = list(color = '#000000',
+                         size = 12),
+                     bgcolor = '#FFFFFF')
+    
+    if (marker1 == marker2){
+        final_graph <-plot_ly(type = 'scatter', mode = 'markers') %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            add_trace(x=~class_x$x, y=~class_x$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1) %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    else if (nrow(class_x_only) > 0 & nrow(class_y_only) > 0) {
+        final_graph <-plot_ly() %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            add_trace(x=~class_x_only$x, y=~class_x_only$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1) %>%
+            add_trace(x=~class_y_only$x, y=~class_y_only$y, marker = list(color = 'rgb(255, 0, 0)'), name = marker2) %>%
+            add_trace(x=~dp_cells$x, y=~dp_cells$y, marker = list(color='rgb(57, 255, 20)'), name = 'Double Positive') %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    else if (nrow(class_x_only) == 0 & nrow(class_y_only) > 0) {
+        final_graph <-plot_ly() %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            add_trace(x=~class_y_only$x, y=~class_y_only$y, marker = list(color = 'rgb(255, 0, 0)'), name = marker2) %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    else if (nrow(class_y_only) == 0 & nrow(class_x_only) > 0) {
+        final_graph <-plot_ly() %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            add_trace(x=~class_x_only$x, y=~class_x_only$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1) %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    else if (nrow(class_y_only) == 0 & nrow(class_x_only) == 0) {
+        final_graph <-plot_ly() %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    
+    final_graph %>%
+        toWebGL() 
 })
