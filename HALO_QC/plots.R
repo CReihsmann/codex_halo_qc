@@ -197,13 +197,19 @@ output$intensityChart <- renderPlotly({
     }
 })
 
-output$cellMap <-renderPlotly({
-    
-    x_y_coord <- uploaded_file() %>% 
+#--Cell plotting graphs
+
+x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
+    uploaded_file() %>% 
         select(`Object Id`, XMin:YMax) %>% 
         mutate(x = round((XMin + XMax)/2, 0),
                y = round((YMin + YMax)/2, 0)) %>% 
         select(`Object Id`, x, y)
+}
+
+output$cellMap <-renderPlotly({
+    
+    x_y_coord <- x_y_coord_prep(upload_file())
     
     classification_cols <- classification_col_filter() %>% 
         right_join(x_y_coord)
@@ -248,10 +254,10 @@ output$cellMap <-renderPlotly({
     axis = list(showgrid = FALSE, showticklabels = FALSE, showgrid = FALSE)
     bg_color = '#000000'
     tx_color = list(color = '#000000',
-    size = 16,
-    bgcolor = '#FFFFFF')
+                    size = 16,
+                    bgcolor = '#FFFFFF')
     lg_layout = list(font = list(color = '#000000',
-                         size = 12),
+                                 size = 12),
                      bgcolor = '#FFFFFF')
     
     if (marker1 == marker2){
@@ -301,6 +307,59 @@ output$cellMap <-renderPlotly({
                    legend = lg_layout)
     }
     else if (nrow(class_y_only) == 0 & nrow(class_x_only) == 0) {
+        final_graph <-plot_ly() %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    
+    final_graph %>%
+        toWebGL() 
+})
+
+output$cellMap_ind <- renderPlotly({
+    x_y_coord <- x_y_coord_prep(upload_file())
+    
+    classification_cols <- classification_col_filter() %>% 
+        right_join(x_y_coord)
+    
+    ind_marker = input$marker_ind
+    
+    class_x <- classification_cols %>%
+        select(`Object Id`, x, y, matches(ind_marker)) %>%
+        filter(!!as.name(ind_marker) == 1)
+    
+    marker_ob_ids <- class_x$`Object Id`
+    
+    x_y_none <- x_y_coord %>%
+        filter(!`Object Id` %in% marker_ob_ids) %>%
+        mutate(marker = 'Negative')
+    
+    axis = list(showgrid = FALSE, showticklabels = FALSE, showgrid = FALSE)
+    bg_color = '#000000'
+    tx_color = list(color = '#000000',
+                    size = 16,
+                    bgcolor = '#FFFFFF')
+    lg_layout = list(font = list(color = '#000000',
+                                 size = 12),
+                     bgcolor = '#FFFFFF')
+    
+    if (nrow(class_x) > 0) {
+        final_graph <-plot_ly() %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            add_trace(x=~class_x$x, y=~class_x$y, marker = list(color = 'rgb(57, 255, 20)'), name = ind_marker) %>%
+            layout(paper_bgcolor = bg_color,
+                   plot_bgcolor = bg_color,
+                   xaxis = axis,
+                   yaxis = axis,
+                   font = tx_color,
+                   legend = lg_layout)
+    }
+    else if (nrow(class_x) == 0) {
         final_graph <-plot_ly() %>%
             add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
             layout(paper_bgcolor = bg_color,
