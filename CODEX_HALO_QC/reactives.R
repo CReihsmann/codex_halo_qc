@@ -28,8 +28,8 @@ doughnut_totals <- reactive({
     summarise_at(2:ncol(classification_col_filter()), sum) %>% 
     select(matches(comp_markers())) %>% 
     mutate(total_of_subset = rowSums(across(1:last_col()))) %>% 
-    mutate(other_cells = total_cells - total_of_subset) %>% 
-    relocate(c(total_of_subset, other_cells), .before = 1)
+    mutate(`Other` = total_cells - total_of_subset) %>% 
+    relocate(c(total_of_subset, `Other`), .before = 1)
 })
 
 comp_markers <- eventReactive(input$comp_reset, {
@@ -55,4 +55,11 @@ double_positives <- reactive({
     summarise(val=n()) %>% 
     pivot_wider(names_from = name.y, values_from = val, values_fill = 0, names_sort = F) %>% 
     rename(markers = name.x)  
+})
+
+cell_mapping_m1 <- eventReactive(input$map_update, {
+  input$marker_1
+})
+cell_mapping_m2 <- eventReactive(input$map_update, {
+  input$marker_2
 })

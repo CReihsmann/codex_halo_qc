@@ -24,15 +24,27 @@ observeEvent(input$file, {
     markers_intensity = append(marker_names_intensity, i)
   }
   
+  classification_cols <- classification_col_filter() %>% 
+      colnames() %>%
+      as_tibble()
+ 
+  markers_intensity <- as_tibble(markers_intensity)
+  paired_intensity <- markers_intensity %>%
+      mutate(base_marker = word(value)) %>%
+      rename(select_cols = value) %>%
+      inner_join(classification_cols, by = c('base_marker' = 'value'))
+  final_intensity <- paired_intensity$select_cols 
+  
   markers_dict <- list()
   for(i in 1:length(marker_names)) {
     markers_dict[markers_bars[i]] <- marker_names[i]
   }
   
-  markers_intensity_dict <- list()
-  for(i in 1:length(marker_names_intensity)) {
-    markers_intensity_dict[markers_intensity[i]] <- marker_names_intensity[i]
-  }
+  uploaded_filename <-input$file$name
+  
+  updateSelectInput(session,
+                    'file_select',
+                    choices = c(uploaded_filename, 'test.csv'))
   
   updateSelectInput(session,
                     'barChart_input',
@@ -40,11 +52,11 @@ observeEvent(input$file, {
   
   updateSelectInput(session,
                     'y_input',
-                    choices = markers_intensity_dict)
+                    choices = final_intensity)
   
   updateSelectInput(session,
                     'x_input',
-                    choices = markers_intensity_dict)
+                    choices = final_intensity)
   
   updateSelectInput(session,
                     'marker_1',
@@ -52,6 +64,9 @@ observeEvent(input$file, {
   
   updateSelectInput(session,
                     'marker_2',
+                    choices = markers_dict)
+  updateSelectInput(session,
+                    'marker_ind',
                     choices = markers_dict)
   
 })
