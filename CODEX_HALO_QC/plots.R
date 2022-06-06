@@ -116,7 +116,13 @@ output$intensityChart <- renderPlotly({
   
   x_marker <- word(intensity_markers_x(), 1)
   y_marker <- word(intensity_markers_y(), 1)
-  dataset <- uploaded_file()
+  
+  if(input$file_select == 'example.csv') {
+    dataset <- example_data
+  }
+  else if(input$file_select == input$file$name){
+    dataset <- uploaded_file()
+  }
   
   intensity_class_x <- dataset %>%
     select(`Object Id`, contains(x_marker))
@@ -200,7 +206,7 @@ output$intensityChart <- renderPlotly({
 #--Cell plotting graphs
 
 x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
-  uploaded_file() %>% 
+  data %>% 
     select(`Object Id`, XMin:YMax) %>% 
     mutate(x = round((XMin + XMax)/2, 0),
            y = round((YMin + YMax)/2, 0)) %>% 
@@ -209,7 +215,12 @@ x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
 
 output$cellMap <-renderPlotly({
   
-  x_y_coord <- x_y_coord_prep(upload_file())
+  if (input$file_select == 'example.csv') {
+    x_y_coord <- x_y_coord_prep(example_data)
+  }
+  else if (input$file_select == input$file$name) {
+    x_y_coord <- x_y_coord_prep(uploaded_file())
+  }
   
   classification_cols <- classification_col_filter() %>% 
     right_join(x_y_coord)
@@ -322,7 +333,12 @@ output$cellMap <-renderPlotly({
 })
 
 output$cellMap_ind <- renderPlotly({
-  x_y_coord <- x_y_coord_prep(upload_file())
+  if (input$file_select == 'example.csv') {
+    x_y_coord <- x_y_coord_prep(example_data)
+  }
+  else if (input$file_select == input$file$name) {
+    x_y_coord <- x_y_coord_prep(uploaded_file())
+  }
   
   classification_cols <- classification_col_filter() %>% 
     right_join(x_y_coord)

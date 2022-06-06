@@ -1,4 +1,12 @@
 observeEvent(input$file, {
+  uploaded_filename <-input$file$name
+  
+  updateSelectInput(session,
+                    'file_select',
+                    choices = c('example.csv', uploaded_filename))
+})
+
+observeEvent(input$update_file, {
   
   marker_names <- classification_col_filter() %>%
     select(!`Object Id`) %>%
@@ -40,12 +48,7 @@ observeEvent(input$file, {
     markers_dict[markers_bars[i]] <- marker_names[i]
   }
   
-  uploaded_filename <-input$file$name
-  
-  updateSelectInput(session,
-                    'file_select',
-                    choices = c(uploaded_filename, 'test.csv'))
-  
+
   updateSelectInput(session,
                     'barChart_input',
                     choices = markers_dict)
