@@ -1,5 +1,5 @@
 output$full_dataset <- renderDataTable(
-    uploaded_file(),
+    data(), #uploaded_file(),
     options = list(
         columnDefs = list(list(visible = T, targets = 1:length(df))), 
         scrollX = TRUE)

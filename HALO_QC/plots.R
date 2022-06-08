@@ -114,9 +114,17 @@ output$doughnutChart <- renderPlotly({
 
 output$intensityChart <- renderPlotly({
     
+    
+    
     x_marker <- word(intensity_markers_x(), 1)
     y_marker <- word(intensity_markers_y(), 1)
-    dataset <- uploaded_file()
+    
+    if(input$file_select == 'example.csv') {
+        dataset <- example_data
+    }
+    else if(input$file_select == input$file$name){
+        dataset <- data() #uploaded_file()
+    }
     
     intensity_class_x <- dataset %>%
         select(`Object Id`, contains(x_marker))
@@ -200,7 +208,7 @@ output$intensityChart <- renderPlotly({
 #--Cell plotting graphs
 
 x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
-    uploaded_file() %>% 
+    data %>% 
         select(`Object Id`, XMin:YMax) %>% 
         mutate(x = round((XMin + XMax)/2, 0),
                y = round((YMin + YMax)/2, 0)) %>% 
@@ -208,21 +216,35 @@ x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
 }
 
 output$cellMap <-renderPlotly({
+   
+
     
-    x_y_coord <- x_y_coord_prep(upload_file())
+    # if (input$file_select == 'example.csv') {
+    #     x_y_coord <- x_y_coord_prep(example_data)
+    # }
+    # else if (input$file_select == input$file$name) {
+    #     x_y_coord <- x_y_coord_prep(data())#uploaded_file()
+    # }
+    x_y_coord <- x_y_coord_prep(data())
     
     classification_cols <- classification_col_filter() %>% 
         right_join(x_y_coord)
     
+    
+   
     marker1 = cell_mapping_m1()
     marker2 = cell_mapping_m2()
-    
+    validate(
+        need(marker1 %in% colnames(classification_cols) & marker2 %in% colnames(classification_cols), 'not right'))
     class_x <- classification_cols %>%
         select(`Object Id`, x, y, matches(marker1)) %>%
         filter(!!as.name(marker1) == 1)
+
     class_y <- classification_cols %>%
         select(`Object Id`, x, y, matches(marker2)) %>%
         filter(!!as.name(marker2) == 1)
+    
+    
     
     dp_cells <- class_x %>%
         inner_join(class_y) %>%
@@ -322,7 +344,13 @@ output$cellMap <-renderPlotly({
 })
 
 output$cellMap_ind <- renderPlotly({
-    x_y_coord <- x_y_coord_prep(upload_file())
+    # if (input$file_select == 'example.csv') {
+    #     x_y_coord <- x_y_coord_prep(example_data)
+    # }
+    # else if (input$file_select == input$file$name) {
+    #     x_y_coord <- x_y_coord_prep(data())#uploaded_file
+    # }
+    x_y_coord <- x_y_coord_prep(data())
     
     classification_cols <- classification_col_filter() %>% 
         right_join(x_y_coord)
@@ -372,4 +400,19 @@ output$cellMap_ind <- renderPlotly({
     
     final_graph %>%
         toWebGL() 
+})
+
+output$resetable_input <- renderUI({
+    times <- input$update_file
+    div(id=letters[(times %% length(letters)) + 1],
+        selectInput('marker_1',
+                    'Marker 1',
+                    choices = 'none',
+                    multiple = F,
+                    selectize = T),
+        selectInput('marker_2',
+                    'Marker 2',
+                    choices = 'none',
+                    multiple = F,
+                    selectize = T))
 })
