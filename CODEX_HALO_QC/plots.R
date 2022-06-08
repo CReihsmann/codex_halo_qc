@@ -92,7 +92,7 @@ output$doughnutChart <- renderPlotly({
       plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
               textinfo = 'label+percent',
               insidetextorientation='radial') %>% 
-      add_pie() %>% 
+      add_pie(hole = 0.5) %>% 
       layout(yaxis = list(automargin = T))
     
     subset_totals
@@ -114,24 +114,29 @@ output$doughnutChart <- renderPlotly({
 
 output$intensityChart <- renderPlotly({
   
+  
+  
   x_marker <- word(intensity_markers_x(), 1)
   y_marker <- word(intensity_markers_y(), 1)
   
-  if(input$file_select == 'example.csv') {
-    dataset <- example_data
-  }
-  else if(input$file_select == input$file$name){
-    dataset <- uploaded_file()
-  }
+  dataset <- data()
   
   intensity_class_x <- dataset %>%
     select(`Object Id`, contains(x_marker))
   intensity_class_y <- dataset %>%
     select(`Object Id`, contains(y_marker))
+  
   intensity_all <- intensity_class_x %>%
     merge(intensity_class_y)
+  
   class_sums <- intensity_all %>%
-    select(`Object Id`, contains('Positive Classification')) %>% 
+    select(`Object Id`, contains('Positive Classification')) 
+  
+  validate(
+    need(ncol(class_sums) > 2, 'Choose Markers for X and Y')
+  )
+  
+  class_sums <- class_sums %>% 
     mutate(sums = rowSums(.[2:3])) %>%
     select(`Object Id`, sums)
   
@@ -214,13 +219,7 @@ x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
 }
 
 output$cellMap <-renderPlotly({
-  
-  if (input$file_select == 'example.csv') {
-    x_y_coord <- x_y_coord_prep(example_data)
-  }
-  else if (input$file_select == input$file$name) {
-    x_y_coord <- x_y_coord_prep(uploaded_file())
-  }
+  x_y_coord <- x_y_coord_prep(data())
   
   classification_cols <- classification_col_filter() %>% 
     right_join(x_y_coord)
@@ -228,12 +227,19 @@ output$cellMap <-renderPlotly({
   marker1 = cell_mapping_m1()
   marker2 = cell_mapping_m2()
   
+  validate(
+    need(is.null(marker1)==F | !is.null(marker2)==F, 'Choose Markers'),
+    need(marker1 %in% colnames(classification_cols) & marker2 %in% colnames(classification_cols), 'Choose Markers'))
+  
   class_x <- classification_cols %>%
     select(`Object Id`, x, y, matches(marker1)) %>%
     filter(!!as.name(marker1) == 1)
+  
   class_y <- classification_cols %>%
     select(`Object Id`, x, y, matches(marker2)) %>%
     filter(!!as.name(marker2) == 1)
+  
+  
   
   dp_cells <- class_x %>%
     inner_join(class_y) %>%
@@ -333,12 +339,8 @@ output$cellMap <-renderPlotly({
 })
 
 output$cellMap_ind <- renderPlotly({
-  if (input$file_select == 'example.csv') {
-    x_y_coord <- x_y_coord_prep(example_data)
-  }
-  else if (input$file_select == input$file$name) {
-    x_y_coord <- x_y_coord_prep(uploaded_file())
-  }
+
+  x_y_coord <- x_y_coord_prep(data())
   
   classification_cols <- classification_col_filter() %>% 
     right_join(x_y_coord)
@@ -389,3 +391,4 @@ output$cellMap_ind <- renderPlotly({
   final_graph %>%
     toWebGL() 
 })
+

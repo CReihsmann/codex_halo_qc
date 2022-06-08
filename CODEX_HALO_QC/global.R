@@ -6,5 +6,6 @@ library(plotly)
 library(shinythemes)
 library(markdown)
 library(DT)
+library(shinyjs)
 
 example_data = read_csv('test.csv')

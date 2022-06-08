@@ -5,30 +5,31 @@ uploaded_file <- reactive({
   df <- read_csv(input$file$datapath)
 })
 
-classification_col_filter <- reactive({
-  if(input$file_select == 'example.csv') {
-    example_data %>% 
-      select(`Object Id`,contains('Positive Classification'))%>%
-      rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
+file_change <- eventReactive(input$update_file, {
+  input$file_select
+})
+
+data <- reactive({NULL
+  if (file_change() == 'example.csv') {
+    example_data
   }
-  else if(input$file_select == input$file$name) {
-    uploaded_file() %>% 
-      select(`Object Id`,contains('Positive Classification'))%>%
-      rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
+  else if (file_change() == input$file$name) {
+    uploaded_file()
   }
 })
 
+classification_col_filter <- reactive({
+  data() %>% 
+    select(`Object Id`,contains('Positive Classification'))%>%
+    rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
+
+})
+
 intensity_col_filter <- reactive({
-  if(input$file_select == 'example.csv') {
-    example_data %>% 
-      select(`Object Id`, contains('Intensity')) %>%
-      rename_with(~ gsub(" Intensity", "", .x, fixed = T))
-  }
-  else if(input$file_select == input$file$name) {
-    uploaded_file() %>%
-      select(`Object Id`, contains('Intensity')) %>%
-      rename_with(~ gsub(" Intensity", "", .x, fixed = T))
-  }
+  data() %>% 
+    select(`Object Id`, contains('Intensity')) %>%
+    rename_with(~ gsub(" Intensity", "", .x, fixed = T))
+
 })
 
 total_cells <- reactive({
@@ -76,8 +77,4 @@ cell_mapping_m1 <- eventReactive(input$map_update, {
 })
 cell_mapping_m2 <- eventReactive(input$map_update, {
   input$marker_2
-})
-
-graph_update <- eventReactive(input$update_file, {
-  final_graph
 })
