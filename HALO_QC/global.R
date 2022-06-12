@@ -7,5 +7,10 @@ library(dashboardthemes)
 library(markdown)
 library(DT)
 library(shinyjs)
+library(ggplot2)
+library(viridis)
 
 example_data = read_csv('test.csv')
+
+comp_colors = c('blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')
+comp_colors2 = c('darkslategrey', 'blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')

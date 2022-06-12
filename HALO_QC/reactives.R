@@ -9,7 +9,7 @@ file_change <- eventReactive(input$update_file, {
     input$file_select
 })
 
-data <- reactive({
+data <- reactive({NULL
     if (file_change() == 'example.csv') {
         example_data
     }
@@ -23,34 +23,13 @@ classification_col_filter <- reactive({
         select(`Object Id`,contains('Positive Classification'))%>%
         rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
     
-    # if(input$file_select == 'example.csv') {
-    #     example_data %>% 
-    #         select(`Object Id`,contains('Positive Classification'))%>%
-    #         rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
-    # }
-    # else if(input$file_select == input$file$name) {
-    #     uploaded_file() %>% 
-    #         select(`Object Id`,contains('Positive Classification'))%>%
-    #         rename_with(~ gsub(" Positive Classification", "", .x, fixed = T))
-    # }
 })
 
 intensity_col_filter <- reactive({
-    
     data() %>% 
         select(`Object Id`, contains('Intensity')) %>%
         rename_with(~ gsub(" Intensity", "", .x, fixed = T))
     
-    # if(input$file_select == 'example.csv') {
-    #     example_data %>% 
-    #         select(`Object Id`, contains('Intensity')) %>%
-    #         rename_with(~ gsub(" Intensity", "", .x, fixed = T))
-    # }
-    # else if(input$file_select == input$file$name) {
-    #     uploaded_file() %>%
-    #         select(`Object Id`, contains('Intensity')) %>%
-    #         rename_with(~ gsub(" Intensity", "", .x, fixed = T))
-    # }
 })
 
 total_cells <- reactive({
@@ -64,8 +43,8 @@ doughnut_totals <- reactive({
         summarise_at(2:ncol(classification_col_filter()), sum) %>% 
         select(matches(comp_markers())) %>% 
         mutate(total_of_subset = rowSums(across(1:last_col()))) %>% 
-        mutate(`Other` = total_cells - total_of_subset) %>% 
-        relocate(c(total_of_subset, `Other`), .before = 1)
+        mutate(`other` = total_cells - total_of_subset) %>% 
+        relocate(c(total_of_subset), .before = 1)
 })
 
 comp_markers <- eventReactive(input$comp_reset, {
@@ -99,5 +78,3 @@ cell_mapping_m1 <- eventReactive(input$map_update, {
 cell_mapping_m2 <- eventReactive(input$map_update, {
     input$marker_2
 })
-
-

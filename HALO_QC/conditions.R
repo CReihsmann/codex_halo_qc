@@ -1,4 +1,5 @@
 observeEvent(input$file, {
+    
     uploaded_filename <-input$file$name
     
     updateSelectInput(session,
@@ -49,51 +50,62 @@ observeEvent(input$update_file, {
     }
     
     
-    updateSelectInput(session,
-                      'barChart_input',
-                      choices = markers_dict)
+    updateSelectizeInput(session,
+                         'barChart_input',
+                         choices = markers_dict,
+                         options = list(
+                             placeholder = 'Choose markers',
+                             onInitialize = I('function() { this.setValue(""); }')
+                         ))
     
-    updateSelectInput(session,
-                      'y_input',
-                      choices = final_intensity)
+    updateSelectizeInput(session,
+                         'y_input',
+                         choices = final_intensity,
+                         options = list(
+                             placeholder = 'Choose a marker',
+                             onInitialize = I('function() { this.setValue(""); }')
+                         ))
     
-    updateSelectInput(session,
+    updateSelectizeInput(session,
                       'x_input',
-                      choices = final_intensity)
+                      choices = final_intensity,
+                      options = list(
+                          placeholder = 'Choose a marker',
+                          onInitialize = I('function() { this.setValue(""); }')
+                      ))
     
-    updateSelectInput(session,
+    updateSelectizeInput(session,
                       'marker_1',
                       choices = markers_dict,
-                      selected = NULL)
+                      selected = NULL,
+                      options = list(
+                          placeholder = 'Choose a marker',
+                          onInitialize = I('function() { this.setValue(""); }')
+                      ))
     
-    updateSelectInput(session,
+    updateSelectizeInput(session,
                       'marker_2',
                       choices = markers_dict,
-                      selected = NULL)
-    updateSelectInput(session,
+                      selected = NULL,
+                      options = list(
+                          placeholder = 'Choose a marker',
+                          onInitialize = I('function() { this.setValue(""); }')
+                      ))
+    
+    updateSelectizeInput(session,
                       'marker_ind',
                       choices = markers_dict,
-                      selected = NULL)
+                      selected = NULL,
+                      options = list(
+                          placeholder = 'Choose a marker',
+                          onInitialize = I('function() { this.setValue(""); }')
+                      ))
     
     reset('marker_1')
     reset('marker_2')
+    reset('marker_ind')
+    reset('x_input')
+    reset('y_input')
+    reset('barChart_input')
     
-    cell_mapping_m1 <- eventReactive(input$map_update, {
-        input$marker_1
-    })
-    cell_mapping_m2 <- eventReactive(input$map_update, {
-        input$marker_2
-    })
-    
- 
-    # ind_marker <- NULL
-    # marker1 <- NULL
-    # marker2 <- NULL
-    # x_y_coord <- NULL
-    # classification_cols <- NULL
-    # totals <- NULL
-    # subset_totals<-NULL
-    # class_x <- NULL
-    # class_y <- NULL
-    # value <- NULL
 })

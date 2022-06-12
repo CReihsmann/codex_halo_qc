@@ -1,5 +1,7 @@
 output$barChart <- renderPlot({
     
+    comp_colors = c('blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')
+
     classification_cols <- classification_col_filter()
     
     total_cells <- total_cells()
@@ -52,8 +54,10 @@ output$barChart <- renderPlot({
             theme_minimal() +
             labs(title = 'Percent of Whole Tissue',
                  fill = 'Target Cell & \n Double Positives',
-                 x = 'Percent (%)',
-                 y = 'Markers')
+                 y = 'Percent (%)',
+                 x = 'Markers')+
+            scale_fill_viridis_d()
+        
     }
     else {
         total_of_subset_prep <- totals %>%
@@ -76,23 +80,29 @@ output$barChart <- renderPlot({
             theme_minimal() +
             labs(title = 'Percent of Subset',
                  fill = 'Target Cell & \n Double Positives',
-                 x = 'Percent (%)',
-                 y = 'Markers')
+                 y = 'Percent (%)',
+                 x = 'Markers')+
+            scale_fill_viridis_d()
+        
     }
 })
 
 output$doughnutChart <- renderPlotly({
+    
+    comp_colors = c('blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')
+    
     
     totals <- doughnut_totals()
     
     if (input$subset_pie == '% of subset') {
         
         subset_totals <- totals %>% 
-            pivot_longer(3:last_col(), names_to = 'selected_markers', values_to = 'total_marker_subset') %>% 
-            plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
+            pivot_longer(2:(last_col()-1), names_to = 'selected_markers', values_to = 'total_marker_subset') %>% 
+            plot_ly(labels = ~factor(selected_markers), values = ~total_marker_subset,
+                    marker = list(colors = comp_colors),
                     textinfo = 'label+percent',
                     insidetextorientation='radial') %>% 
-            add_pie() %>% 
+            add_pie(hole = 0.5) %>% 
             layout(yaxis = list(automargin = T))
         
         subset_totals
@@ -102,10 +112,11 @@ output$doughnutChart <- renderPlotly({
         
         subset_of_all <- totals %>% 
             pivot_longer(2:last_col(), names_to = 'selected_markers', values_to = 'total_marker_subset') %>% 
-            plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
+            plot_ly(labels = ~factor(subset_of_all$selected_markers, ordered = T), values = ~total_marker_subset,
+                    marker = list(colors = comp_colors),
                     textinfo = 'label+percent',
                     insidetextorientation='radial') %>% 
-            add_pie() %>% 
+            add_pie(hole = 0.5) %>% 
             layout(autosize = T)
         
         subset_of_all
@@ -119,21 +130,24 @@ output$intensityChart <- renderPlotly({
     x_marker <- word(intensity_markers_x(), 1)
     y_marker <- word(intensity_markers_y(), 1)
     
-    if(input$file_select == 'example.csv') {
-        dataset <- example_data
-    }
-    else if(input$file_select == input$file$name){
-        dataset <- data() #uploaded_file()
-    }
+    dataset <- data()
     
     intensity_class_x <- dataset %>%
         select(`Object Id`, contains(x_marker))
     intensity_class_y <- dataset %>%
         select(`Object Id`, contains(y_marker))
+    
     intensity_all <- intensity_class_x %>%
         merge(intensity_class_y)
+    
     class_sums <- intensity_all %>%
-        select(`Object Id`, contains('Positive Classification')) %>% 
+        select(`Object Id`, contains('Positive Classification')) 
+    
+    validate(
+        need(ncol(class_sums) > 2, 'Choose Markers for X and Y')
+    )
+    
+    class_sums <- class_sums %>% 
         mutate(sums = rowSums(.[2:3])) %>%
         select(`Object Id`, sums)
     
@@ -216,30 +230,22 @@ x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
 }
 
 output$cellMap <-renderPlotly({
-   
-
-    
-    # if (input$file_select == 'example.csv') {
-    #     x_y_coord <- x_y_coord_prep(example_data)
-    # }
-    # else if (input$file_select == input$file$name) {
-    #     x_y_coord <- x_y_coord_prep(data())#uploaded_file()
-    # }
     x_y_coord <- x_y_coord_prep(data())
     
     classification_cols <- classification_col_filter() %>% 
         right_join(x_y_coord)
     
-    
-   
     marker1 = cell_mapping_m1()
     marker2 = cell_mapping_m2()
+    
     validate(
-        need(marker1 %in% colnames(classification_cols) & marker2 %in% colnames(classification_cols), 'not right'))
+        need(is.null(marker1)==F | !is.null(marker2)==F, 'Choose Markers'),
+        need(marker1 %in% colnames(classification_cols) & marker2 %in% colnames(classification_cols), 'Choose Markers'))
+    
     class_x <- classification_cols %>%
         select(`Object Id`, x, y, matches(marker1)) %>%
         filter(!!as.name(marker1) == 1)
-
+    
     class_y <- classification_cols %>%
         select(`Object Id`, x, y, matches(marker2)) %>%
         filter(!!as.name(marker2) == 1)
@@ -344,18 +350,16 @@ output$cellMap <-renderPlotly({
 })
 
 output$cellMap_ind <- renderPlotly({
-    # if (input$file_select == 'example.csv') {
-    #     x_y_coord <- x_y_coord_prep(example_data)
-    # }
-    # else if (input$file_select == input$file$name) {
-    #     x_y_coord <- x_y_coord_prep(data())#uploaded_file
-    # }
+    
     x_y_coord <- x_y_coord_prep(data())
     
     classification_cols <- classification_col_filter() %>% 
         right_join(x_y_coord)
     
     ind_marker = input$marker_ind
+    
+    validate(
+        need(ind_marker %in% colnames(classification_cols),'No marker selected'))
     
     class_x <- classification_cols %>%
         select(`Object Id`, x, y, matches(ind_marker)) %>%
@@ -400,19 +404,4 @@ output$cellMap_ind <- renderPlotly({
     
     final_graph %>%
         toWebGL() 
-})
-
-output$resetable_input <- renderUI({
-    times <- input$update_file
-    div(id=letters[(times %% length(letters)) + 1],
-        selectInput('marker_1',
-                    'Marker 1',
-                    choices = 'none',
-                    multiple = F,
-                    selectize = T),
-        selectInput('marker_2',
-                    'Marker 2',
-                    choices = 'none',
-                    multiple = F,
-                    selectize = T))
 })
