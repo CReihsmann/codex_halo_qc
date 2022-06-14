@@ -1,7 +1,7 @@
 output$barChart <- renderPlot({
     
     comp_colors = c('blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')
-
+    
     classification_cols <- classification_col_filter()
     
     total_cells <- total_cells()
@@ -89,37 +89,53 @@ output$barChart <- renderPlot({
 
 output$doughnutChart <- renderPlotly({
     
-    comp_colors = c('blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')
+    m1 <- list(
+        b = 75,
+        t = 75,
+        pad = 30
+    )
     
+    m2 <- list(
+        b = 50,
+        t = 100,
+        pad = 30
+    )
     
     totals <- doughnut_totals()
     
     if (input$subset_pie == '% of subset') {
-        
         subset_totals <- totals %>% 
-            pivot_longer(2:(last_col()-1), names_to = 'selected_markers', values_to = 'total_marker_subset') %>% 
-            plot_ly(labels = ~factor(selected_markers), values = ~total_marker_subset,
+            pivot_longer(2:(last_col()-1), names_to = 'selected_markers', values_to = 'total_marker_subset')
+        
+        subset_totals$selected_markers <- factor(subset_totals$selected_markers, levels = subset_totals$selected_markers)
+        
+        subset_totals %>%  
+            plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
                     marker = list(colors = comp_colors),
                     textinfo = 'label+percent',
                     insidetextorientation='radial') %>% 
             add_pie(hole = 0.5) %>% 
-            layout(yaxis = list(automargin = T))
+            layout(autosize = T,
+                   margin = m1)
         
-        subset_totals
+        
     }
     else {
         total_cells <- total_cells()
         
         subset_of_all <- totals %>% 
-            pivot_longer(2:last_col(), names_to = 'selected_markers', values_to = 'total_marker_subset') %>% 
-            plot_ly(labels = ~factor(subset_of_all$selected_markers, ordered = T), values = ~total_marker_subset,
+            pivot_longer(2:last_col(), names_to = 'selected_markers', values_to = 'total_marker_subset')
+        
+        subset_of_all$selected_markers <- factor(subset_of_all$selected_markers, levels = subset_of_all$selected_markers)
+        
+        subset_of_all %>% 
+            plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
                     marker = list(colors = comp_colors),
                     textinfo = 'label+percent',
                     insidetextorientation='radial') %>% 
             add_pie(hole = 0.5) %>% 
-            layout(autosize = T)
-        
-        subset_of_all
+            layout(autosize = T,
+                   margin = m2)
     }
 })
 
