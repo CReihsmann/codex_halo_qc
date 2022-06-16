@@ -9,10 +9,10 @@ library(DT)
 library(shinyjs)
 library(ggplot2)
 library(viridis)
+library(hexbin)
 
 example_data = read_csv('test.csv')
 
 inferno <- read_csv('viridis_inferno.csv')
 comp_colors <- inferno$inferno
-
 

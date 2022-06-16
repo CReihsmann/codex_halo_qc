@@ -1,11 +1,14 @@
-output$barChart <- renderPlot({
+output$barChart <- renderPlotly({
     
-    comp_colors = c('blue', 'red', 'green2', 'orange', 'magenta4', 'goldenrod', 'lightseagreen', 'sienna2')
-    
-    classification_cols <- classification_col_filter()
+    if (!is.null(comp_markers_2())) {
+    classification_cols <- classification_col_filter() %>% 
+        filter(!!as.name(comp_markers_2()) == 1)
+    }
+    else {
+        classification_cols <- classification_col_filter()
+    }
     
     total_cells <- total_cells()
-    
     
     totals <- classification_cols %>% 
         summarise_at(2:ncol(classification_cols), sum) %>% 
@@ -42,13 +45,13 @@ output$barChart <- renderPlot({
             left_join(totals_2) %>%  
             select(!sums) %>% 
             pivot_longer(2:last_col(), names_to = 'dp_markers', values_to = 'dp_rates') %>%
-            mutate(percentage_of_total = round((dp_rates/total_cells)*100, 2)) %>%
+            mutate(percentage_of_total = round((dp_rates/total_cells)*100, 4)) %>%
             filter(percentage_of_total != 0) %>%
             select(markers, dp_markers, percentage_of_total) %>%
             arrange(percentage_of_total)
         
         final_df %>%
-            ggplot(aes(x=markers, y = percentage_of_total, fill = reorder(dp_markers, percentage_of_total)))+
+            ggplot(aes(x=markers, y = percentage_of_total, fill = dp_markers))+
             geom_col(position = position_dodge(preserve = 'single')) +
             coord_flip() +
             theme_minimal() +
@@ -56,7 +59,7 @@ output$barChart <- renderPlot({
                  fill = 'Target Cell & \n Double Positives',
                  y = 'Percent (%)',
                  x = 'Markers')+
-            scale_fill_viridis_d()
+            scale_fill_manual(values = comp_colors)
         
     }
     else {
@@ -74,7 +77,7 @@ output$barChart <- renderPlot({
             select(markers, dp_markers, dp_rates)
         
         final_df%>%
-            ggplot(aes(x=markers, y = dp_rates, fill = reorder(dp_markers, dp_rates)))+
+            ggplot(aes(x=markers, y = dp_rates, fill = dp_markers))+
             geom_col(position = position_dodge(preserve = 'single')) +
             coord_flip() +
             theme_minimal() +
@@ -82,7 +85,7 @@ output$barChart <- renderPlot({
                  fill = 'Target Cell & \n Double Positives',
                  y = 'Percent (%)',
                  x = 'Markers')+
-            scale_fill_viridis_d()
+            scale_fill_manual(values = comp_colors)
         
     }
 })
@@ -146,6 +149,14 @@ output$intensityChart <- renderPlotly({
     x_marker <- word(intensity_markers_x(), 1)
     y_marker <- word(intensity_markers_y(), 1)
     
+    validate(
+        need(x_marker != c("") & y_marker != c(""), 'Choose Markers for X and Y')
+    )
+    # validate(
+    #     need(y_marker != c(), 'Choose Markers for y')
+    # )
+    
+    
     dataset <- data()
     
     intensity_class_x <- dataset %>%
@@ -196,6 +207,7 @@ output$intensityChart <- renderPlotly({
             geom_hex(bins = 200, alpha = 1.0) +
             theme_minimal() +
             theme(aspect.ratio = 1/1)
+            
     }
     else if (input$intensity_choices == 'positive') {
         intensity_ind_pos %>%
@@ -241,7 +253,7 @@ x_y_coord_prep <- function(data){ #gets x, y coordinates prepped
     data %>% 
         select(`Object Id`, XMin:YMax) %>% 
         mutate(x = round((XMin + XMax)/2, 0),
-               y = round((YMin + YMax)/2, 0)) %>% 
+               y = round(-(YMin + YMax)/2, 0)) %>% 
         select(`Object Id`, x, y)
 }
 
@@ -306,8 +318,8 @@ output$cellMap <-renderPlotly({
     
     if (marker1 == marker2){
         final_graph <-plot_ly(type = 'scatter', mode = 'markers') %>%
-            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
-            add_trace(x=~class_x$x, y=~class_x$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1) %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative', hoverinfo = 'name') %>%
+            add_trace(x=~class_x$x, y=~class_x$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1, hoverinfo = 'name') %>%
             layout(paper_bgcolor = bg_color,
                    plot_bgcolor = bg_color,
                    xaxis = axis,
@@ -317,10 +329,10 @@ output$cellMap <-renderPlotly({
     }
     else if (nrow(class_x_only) > 0 & nrow(class_y_only) > 0) {
         final_graph <-plot_ly() %>%
-            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
-            add_trace(x=~class_x_only$x, y=~class_x_only$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1) %>%
-            add_trace(x=~class_y_only$x, y=~class_y_only$y, marker = list(color = 'rgb(255, 0, 0)'), name = marker2) %>%
-            add_trace(x=~dp_cells$x, y=~dp_cells$y, marker = list(color='rgb(57, 255, 20)'), name = 'Double Positive') %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative', hoverinfo = 'name') %>%
+            add_trace(x=~class_x_only$x, y=~class_x_only$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1, hoverinfo = 'name') %>%
+            add_trace(x=~class_y_only$x, y=~class_y_only$y, marker = list(color = 'rgb(255, 0, 0)'), name = marker2, hoverinfo = 'name') %>%
+            add_trace(x=~dp_cells$x, y=~dp_cells$y, marker = list(color='rgb(57, 255, 20)'), name = 'Double Positive', hoverinfo = 'name') %>%
             layout(paper_bgcolor = bg_color,
                    plot_bgcolor = bg_color,
                    xaxis = axis,
@@ -330,8 +342,8 @@ output$cellMap <-renderPlotly({
     }
     else if (nrow(class_x_only) == 0 & nrow(class_y_only) > 0) {
         final_graph <-plot_ly() %>%
-            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
-            add_trace(x=~class_y_only$x, y=~class_y_only$y, marker = list(color = 'rgb(255, 0, 0)'), name = marker2) %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative', hoverinfo = 'name') %>%
+            add_trace(x=~class_y_only$x, y=~class_y_only$y, marker = list(color = 'rgb(255, 0, 0)'), name = marker2, hoverinfo = 'name') %>%
             layout(paper_bgcolor = bg_color,
                    plot_bgcolor = bg_color,
                    xaxis = axis,
@@ -341,8 +353,8 @@ output$cellMap <-renderPlotly({
     }
     else if (nrow(class_y_only) == 0 & nrow(class_x_only) > 0) {
         final_graph <-plot_ly() %>%
-            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
-            add_trace(x=~class_x_only$x, y=~class_x_only$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1) %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative', hoverinfo = 'name') %>%
+            add_trace(x=~class_x_only$x, y=~class_x_only$y, marker = list(color = 'rgb(0, 0, 164)'), name = marker1, hoverinfo = 'name') %>%
             layout(paper_bgcolor = bg_color,
                    plot_bgcolor = bg_color,
                    xaxis = axis,
@@ -352,7 +364,7 @@ output$cellMap <-renderPlotly({
     }
     else if (nrow(class_y_only) == 0 & nrow(class_x_only) == 0) {
         final_graph <-plot_ly() %>%
-            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative') %>%
+            add_trace(x=~x_y_none$x, y=~x_y_none$y, marker = list(color = 'rgb(169, 169, 169)'), name = 'Negative', hoverinfo = 'name') %>%
             layout(paper_bgcolor = bg_color,
                    plot_bgcolor = bg_color,
                    xaxis = axis,

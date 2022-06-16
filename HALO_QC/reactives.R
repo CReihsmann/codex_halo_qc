@@ -51,6 +51,10 @@ comp_markers <- eventReactive(input$comp_reset, {
     input$barChart_input
 })
 
+comp_markers_2 <- eventReactive(input$comp_reset, {
+    input$subset_tissue
+})
+
 intensity_markers_y <- eventReactive(input$intensity_reset, {
     input$y_input
 })
