@@ -10,6 +10,7 @@ library(shinyjs)
 library(ggplot2)
 library(viridis)
 library(hexbin)
+library(shinycssloaders)
 
 example_data = read_csv('test.csv')
 
