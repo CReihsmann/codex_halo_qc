@@ -2,7 +2,7 @@ uploaded_file <- reactive({
     
     req(input$file)
     
-    df <- read_csv(input$file$datapath)
+    df <- vroom(input$file$datapath)
 })
 
 file_change <- eventReactive(input$update_file, {
