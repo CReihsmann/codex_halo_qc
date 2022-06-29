@@ -8,4 +8,4 @@ library(markdown)
 library(DT)
 library(shinyjs)
 
-example_data = read_csv('test.csv')
+example_data = read_csv('sample.csv')

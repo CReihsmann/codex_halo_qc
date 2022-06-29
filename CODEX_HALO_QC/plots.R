@@ -105,7 +105,7 @@ output$doughnutChart <- renderPlotly({
       plot_ly(labels = ~selected_markers, values = ~total_marker_subset,
               textinfo = 'label+percent',
               insidetextorientation='radial') %>% 
-      add_pie() %>% 
+      add_pie(hole = 0.5) %>% 
       layout(autosize = T)
     
     subset_of_all
@@ -113,8 +113,6 @@ output$doughnutChart <- renderPlotly({
 })
 
 output$intensityChart <- renderPlotly({
-  
-  
   
   x_marker <- word(intensity_markers_x(), 1)
   y_marker <- word(intensity_markers_y(), 1)
@@ -345,7 +343,7 @@ output$cellMap_ind <- renderPlotly({
   classification_cols <- classification_col_filter() %>% 
     right_join(x_y_coord)
   
-  ind_marker = input$marker_ind
+  ind_marker = cell_mapping_ind()
   
   class_x <- classification_cols %>%
     select(`Object Id`, x, y, matches(ind_marker)) %>%

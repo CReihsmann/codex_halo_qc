@@ -78,3 +78,6 @@ cell_mapping_m1 <- eventReactive(input$map_update, {
 cell_mapping_m2 <- eventReactive(input$map_update, {
   input$marker_2
 })
+cell_mapping_ind <- eventReactive(input$ind_map_update, {
+  input$marker_ind
+})

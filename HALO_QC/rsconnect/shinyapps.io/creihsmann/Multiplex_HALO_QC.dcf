@@ -1,0 +1,13 @@
+name: Multiplex_HALO_QC
+title: Multiplex_HALO_QC
+username:
+account: creihsmann
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6488254
+bundleId: 6006906
+url: https://creihsmann.shinyapps.io/Multiplex_HALO_QC/
+when: 1655219728.59533
+lastSyncTime: 1655219728.59533
+asMultiple: FALSE
+asStatic: FALSE

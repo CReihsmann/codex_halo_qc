@@ -2,7 +2,11 @@ library(tidyverse)
 library(ggplot2)
 library(plotly)
 
-test_dataset <- read.csv('../data/AEIM373-object_data_test.csv', check.names = T)
+test_dataset <- read_csv('../data/AEIM373-object_data_test.csv')
+c(as.list(test_dataset$`Object Id`))
+
+test_dataset %>% 
+  select(contains('ATP1a1'))
 
 classification_cols <- test_dataset %>%  
   mutate(unosid = str_sub(Algorithm.Name, 10, 19)) %>% 
